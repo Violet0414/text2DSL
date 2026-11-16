@@ -1,0 +1,62 @@
+# 销售指标 cube — PoC 受控指标层(PoC评测方案 §2.2)
+# 口径歧义对:sales_amount(不含税) 与 sales_amount_with_tax(含税) 并存,用于验证 K2 澄清
+name: sales
+description: "销售核心指标:销售额(含税/不含税)、订单量、客单价、退款率,支持按渠道/区域/类目/订单状态维度与订单日期时间粒度聚合。"
+base_object: orders
+measures:
+  - name: sales_amount
+    expression: SUM(amount)
+    type: DOUBLE
+    properties:
+      description: "销售额(不含税口径)。同义词:营收、销售额。"
+  - name: sales_amount_with_tax
+    expression: SUM(amount_with_tax)
+    type: DOUBLE
+    properties:
+      description: "销售额(含税口径)= SUM(amount × 1.13)。与不含税口径并存,用户说'销售额'未指明口径时必须澄清。"
+  - name: order_count
+    expression: COUNT(DISTINCT order_id)
+    type: BIGINT
+    properties:
+      description: "订单量(去重订单数)。同义词:卖了多少、订单数。"
+  - name: avg_order_value
+    expression: AVG(amount)
+    type: DOUBLE
+    properties:
+      description: "客单价(不含税)。同义词:平均每单多少钱、单均金额。"
+  - name: refund_rate
+    expression: SUM(CASE WHEN order_status = '已退款' THEN amount ELSE 0 END) / NULLIF(SUM(amount), 0)
+    type: DOUBLE
+    properties:
+      description: "退款率 = 已退款金额 / 总金额(不含税)。同义词:退款情况。"
+dimensions:
+  - name: channel
+    expression: channel
+    type: VARCHAR
+    properties:
+      description: "销售渠道,枚举:app / 小程序 / 门店 / 电商。"
+  - name: region
+    expression: region
+    type: VARCHAR
+    properties:
+      description: "销售区域,枚举:华东 / 华北 / 华南 / 西南。"
+  - name: category
+    expression: category
+    type: VARCHAR
+    properties:
+      description: "商品类目,枚举:数码 / 家居 / 服饰 / 食品。"
+  - name: order_status
+    expression: order_status
+    type: VARCHAR
+    properties:
+      description: "订单状态,枚举:已完成 / 已退款 / 待发货。"
+time_dimensions:
+  - name: order_date
+    expression: order_date
+    type: DATE
+    properties:
+      description: "订单日期,时间粒度(granularity)在查询时指定:day / week / month / quarter / year。"
+hierarchies:
+  time: [order_date]
+properties:
+  description: "受控指标唯一出口:所有问数请求必须落在本 cube 的 measures/dimensions 白名单内。"

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# PoC 生成产物（可由脚本/命令复现）
+poc/wren_poc/data/
+poc/wren_poc/target/
+poc/eval/results/
+
+# 本地环境与密钥
+.env
+.env.*
+*.local.json
+
+# 编辑器/系统
+.DS_Store
+Thumbs.db
+
+# Claude 本地配置（不入库）
+.claude/settings.json
+.claude/settings.local.json
+.claude/settings.json.bak-*

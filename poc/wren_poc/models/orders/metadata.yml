@@ -1,0 +1,55 @@
+# 订单宽表 — PoC 基准 schema(PoC评测方案 §三)
+# 数据:wren_poc/data/sales.duckdb(ATTACH alias = sales,合成数据)
+name: orders
+description: "销售订单宽表:一行一笔订单,含渠道、区域、商品类目、金额(不含税/含税)、订单状态、订单日期。"
+table_reference:
+  catalog: sales     # DuckDB ATTACH alias,源自 sales.duckdb 文件名
+  schema: main
+  table: orders
+columns:
+  - name: order_id
+    type: VARCHAR
+    is_calculated: false
+    not_null: true
+    is_primary_key: true
+    properties:
+      description: "订单唯一编号,格式 SO+8位数字。"
+  - name: channel
+    type: VARCHAR
+    is_calculated: false
+    properties:
+      description: "[enum] 销售渠道,取值:app / 小程序 / 门店 / 电商。"
+  - name: region
+    type: VARCHAR
+    is_calculated: false
+    properties:
+      description: "[enum] 销售区域,取值:华东 / 华北 / 华南 / 西南。"
+  - name: category
+    type: VARCHAR
+    is_calculated: false
+    properties:
+      description: "[enum] 商品类目,取值:数码 / 家居 / 服饰 / 食品。"
+  - name: amount
+    type: DOUBLE
+    is_calculated: false
+    properties:
+      description: "[口径] 订单金额,不含税口径。含税金额见 amount_with_tax。"
+  - name: amount_with_tax
+    type: DOUBLE
+    is_calculated: false
+    properties:
+      description: "[口径] 订单金额,含税口径 = amount × 1.13。"
+  - name: order_status
+    type: VARCHAR
+    is_calculated: false
+    properties:
+      description: "[enum] 订单状态,取值:已完成 / 已退款 / 待发货。"
+  - name: order_date
+    type: DATE
+    is_calculated: false
+    properties:
+      description: "订单日期(下单日),时间分析统一使用此列。"
+primary_key: order_id
+cached: false
+properties:
+  description: "销售订单宽表:一行一笔订单,含渠道、区域、商品类目、金额(不含税/含税)、订单状态、订单日期。"

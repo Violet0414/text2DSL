@@ -1,0 +1,58 @@
+{"id": "Q01", "layer": "单指标直查", "question": "本月各渠道营收", "expected": {"metric": ["sales_amount"], "dimensions": ["channel"], "time": "current_month", "behavior": "query", "note": "口径歧义红线:评测方案原文Q01示例用'销售额',与K2澄清红线冲突,执行时统一改'营收';澄清语义以 knowledge/rules/metrics.md 为准"}}
+{"id": "Q02", "layer": "单指标直查", "question": "上个月总订单量", "expected": {"metric": ["order_count"], "dimensions": [], "time": "last_month", "behavior": "query"}}
+{"id": "Q03", "layer": "单指标直查", "question": "今年华东区营收", "expected": {"metric": ["sales_amount"], "dimensions": ["region=华东"], "time": "current_year", "behavior": "query"}}
+{"id": "Q04", "layer": "单指标直查", "question": "上周客单价", "expected": {"metric": ["avg_order_value"], "dimensions": [], "time": "last_week", "behavior": "query"}}
+{"id": "Q05", "layer": "单指标直查", "question": "2025年10月的营收", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": {"gte": "2025-10-01", "lte": "2025-10-31"}, "behavior": "query"}}
+{"id": "Q06", "layer": "单指标直查", "question": "各商品类目的订单量", "expected": {"metric": ["order_count"], "dimensions": ["category"], "time": null, "behavior": "query"}}
+{"id": "Q07", "layer": "单指标直查", "question": "本月华南区订单量", "expected": {"metric": ["order_count"], "dimensions": ["region=华南"], "time": "current_month", "behavior": "query"}}
+{"id": "Q08", "layer": "单指标直查", "question": "过去30天营收", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": "last_30d", "behavior": "query"}}
+{"id": "Q09", "layer": "单指标直查", "question": "今天各区域营收", "expected": {"metric": ["sales_amount"], "dimensions": ["region"], "time": "today", "behavior": "query"}}
+{"id": "Q10", "layer": "单指标直查", "question": "这个季度客单价", "expected": {"metric": ["avg_order_value"], "dimensions": [], "time": "current_quarter", "behavior": "query"}}
+{"id": "Q11", "layer": "同义/口语变体", "question": "营收情况", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": null, "behavior": "query", "note": "glossary: 营收→销售额_不含税"}}
+{"id": "Q12", "layer": "同义/口语变体", "question": "卖了多少", "expected": {"metric": ["order_count"], "dimensions": [], "time": null, "behavior": "query", "note": "glossary: 卖了多少→订单量"}}
+{"id": "Q13", "layer": "同义/口语变体", "question": "平均每单多少钱", "expected": {"metric": ["avg_order_value"], "dimensions": [], "time": null, "behavior": "query", "note": "glossary: 平均每单多少钱→客单价"}}
+{"id": "Q14", "layer": "同义/口语变体", "question": "上个月营收", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": "last_month", "behavior": "query"}}
+{"id": "Q15", "layer": "同义/口语变体", "question": "华东区卖了多少", "expected": {"metric": ["order_count"], "dimensions": ["region=华东"], "time": null, "behavior": "query"}}
+{"id": "Q16", "layer": "同义/口语变体", "question": "各渠道营收对比", "expected": {"metric": ["sales_amount"], "dimensions": ["channel"], "time": null, "behavior": "query"}}
+{"id": "Q17", "layer": "同义/口语变体", "question": "退款情况怎么样", "expected": {"metric": ["refund_rate"], "dimensions": [], "time": null, "behavior": "query", "note": "glossary: 退款情况→退款率"}}
+{"id": "Q18", "layer": "跨指标对比", "question": "营收和订单量对比", "expected": {"metric": ["sales_amount", "order_count"], "dimensions": [], "time": null, "behavior": "query"}}
+{"id": "Q19", "layer": "跨指标对比", "question": "本月各渠道的营收和客单价", "expected": {"metric": ["sales_amount", "avg_order_value"], "dimensions": ["channel"], "time": "current_month", "behavior": "query"}}
+{"id": "Q20", "layer": "跨指标对比", "question": "上季度订单量和退款率", "expected": {"metric": ["order_count", "refund_rate"], "dimensions": [], "time": "last_quarter", "behavior": "query"}}
+{"id": "Q21", "layer": "跨指标对比", "question": "各区域营收、订单量、客单价", "expected": {"metric": ["sales_amount", "order_count", "avg_order_value"], "dimensions": ["region"], "time": null, "behavior": "query"}}
+{"id": "Q22", "layer": "跨指标对比", "question": "今年各商品类目的客单价和退款率", "expected": {"metric": ["avg_order_value", "refund_rate"], "dimensions": ["category"], "time": "current_year", "behavior": "query"}}
+{"id": "Q23", "layer": "时间表达", "question": "营收同比", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": "yoy", "behavior": "query"}}
+{"id": "Q24", "layer": "时间表达", "question": "营收环比", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": "mom", "behavior": "query"}}
+{"id": "Q25", "layer": "时间表达", "question": "近7天订单量", "expected": {"metric": ["order_count"], "dimensions": [], "time": "last_7d", "behavior": "query"}}
+{"id": "Q26", "layer": "时间表达", "question": "上季度各区域营收", "expected": {"metric": ["sales_amount"], "dimensions": ["region"], "time": "last_quarter", "behavior": "query"}}
+{"id": "Q27", "layer": "时间表达", "question": "去年同期营收", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": "same_period_last_year", "behavior": "query"}}
+{"id": "Q28", "layer": "时间表达", "question": "最近3个月各渠道订单量", "expected": {"metric": ["order_count"], "dimensions": ["channel"], "time": "last_3m", "behavior": "query"}}
+{"id": "Q29", "layer": "时间表达", "question": "上上周客单价", "expected": {"metric": ["avg_order_value"], "dimensions": [], "time": "week_before_last", "behavior": "query"}}
+{"id": "Q30", "layer": "时间表达", "question": "今年以来各月营收", "expected": {"metric": ["sales_amount"], "dimensions": [], "time": "current_year", "granularity": "month", "behavior": "query"}}
+{"id": "Q31", "layer": "维度筛选/Top-N", "question": "华东区营收前10商品类目", "expected": {"metric": ["sales_amount"], "dimensions": ["region=华东", "category"], "topN": 10, "time": null, "behavior": "query"}}
+{"id": "Q32", "layer": "维度筛选/Top-N", "question": "营收最高的3个渠道", "expected": {"metric": ["sales_amount"], "dimensions": ["channel"], "topN": 3, "time": null, "behavior": "query"}}
+{"id": "Q33", "layer": "维度筛选/Top-N", "question": "订单量前5的商品类目", "expected": {"metric": ["order_count"], "dimensions": ["category"], "topN": 5, "time": null, "behavior": "query"}}
+{"id": "Q34", "layer": "维度筛选/Top-N", "question": "西南区已完成订单的营收", "expected": {"metric": ["sales_amount"], "dimensions": ["region=西南"], "filters": ["order_status=已完成"], "time": null, "behavior": "query"}}
+{"id": "Q35", "layer": "维度筛选/Top-N", "question": "电商渠道的客单价", "expected": {"metric": ["avg_order_value"], "dimensions": ["channel=电商"], "time": null, "behavior": "query"}}
+{"id": "Q36", "layer": "维度筛选/Top-N", "question": "华东和华北的营收对比", "expected": {"metric": ["sales_amount"], "dimensions": ["region"], "filters": ["region in [华东,华北]"], "time": null, "behavior": "query"}}
+{"id": "Q37", "layer": "口径歧义", "question": "销售额怎么样", "expected": {"metric": ["sales_amount", "sales_amount_with_tax"], "behavior": "clarify", "clarify_options": ["含税口径", "不含税口径"]}}
+{"id": "Q38", "layer": "口径歧义", "question": "上个月销售额", "expected": {"metric": ["sales_amount", "sales_amount_with_tax"], "time": "last_month", "behavior": "clarify", "clarify_options": ["含税口径", "不含税口径"]}}
+{"id": "Q39", "layer": "口径歧义", "question": "各渠道销售额对比", "expected": {"metric": ["sales_amount", "sales_amount_with_tax"], "dimensions": ["channel"], "behavior": "clarify", "clarify_options": ["含税口径", "不含税口径"]}}
+{"id": "Q40", "layer": "口径歧义", "question": "今年销售额是多少", "expected": {"metric": ["sales_amount", "sales_amount_with_tax"], "time": "current_year", "behavior": "clarify", "clarify_options": ["含税口径", "不含税口径"]}}
+{"id": "Q41", "layer": "缺参澄清", "question": "看一下销售额", "expected": {"metric": ["sales_amount", "sales_amount_with_tax"], "behavior": "clarify", "clarify_options": ["含税口径", "不含税口径"], "missing_slots": ["time"], "note": "口径歧义与缺参叠加,至少澄清口径;时间缺失可默认或一并追问"}}
+{"id": "Q42", "layer": "缺参澄清", "question": "订单量", "expected": {"metric": ["order_count"], "behavior": "clarify", "missing_slots": ["time"]}}
+{"id": "Q43", "layer": "缺参澄清", "question": "客单价", "expected": {"metric": ["avg_order_value"], "behavior": "clarify", "missing_slots": ["time"]}}
+{"id": "Q44", "layer": "缺参澄清", "question": "退款率", "expected": {"metric": ["refund_rate"], "behavior": "clarify", "missing_slots": ["time"]}}
+{"id": "Q45", "layer": "缺参澄清", "question": "销售额和订单量", "expected": {"metric": ["sales_amount", "sales_amount_with_tax", "order_count"], "behavior": "clarify", "missing_slots": ["time"], "note": "口径歧义叠加,须澄清含税/不含税", "clarify_options": ["含税口径", "不含税口径"]}}
+{"id": "Q46", "layer": "应未命中", "question": "库存周转率", "expected": {"behavior": "miss", "note": "语义层未定义库存周转率,须进入未命中说明而非瞎答"}}
+{"id": "Q47", "layer": "应未命中", "question": "各门店的利润率", "expected": {"behavior": "miss", "note": "利润率指标与门店维度均未定义"}}
+{"id": "Q48", "layer": "非问数问题", "question": "你好", "expected": {"behavior": "chitchat"}}
+{"id": "Q49", "layer": "非问数问题", "question": "帮我建个新指标", "expected": {"behavior": "chitchat", "note": "指标建模非问数意图,须旁路"}}
+{"id": "Q50", "layer": "非问数问题", "question": "今天天气怎么样", "expected": {"behavior": "chitchat"}}
+{"id": "C1T1", "layer": "多轮-时间变更", "chain": "C1", "turn": 1, "question": "本月各渠道营收", "expected": {"metric": ["sales_amount"], "dimensions": ["channel"], "time": "current_month", "behavior": "query"}}
+{"id": "C1T2", "layer": "多轮-时间变更", "chain": "C1", "turn": 2, "question": "那上个月呢", "expected": {"metric": ["sales_amount"], "dimensions": ["channel"], "time": "last_month", "behavior": "query", "slot_diff": {"time": "current_month->last_month"}}}
+{"id": "C2T1", "layer": "多轮-维度变更", "chain": "C2", "turn": 1, "question": "今年各区域营收", "expected": {"metric": ["sales_amount"], "dimensions": ["region"], "time": "current_year", "behavior": "query"}}
+{"id": "C2T2", "layer": "多轮-维度变更", "chain": "C2", "turn": 2, "question": "改成按商品类目看", "expected": {"metric": ["sales_amount"], "dimensions": ["category"], "time": "current_year", "behavior": "query", "slot_diff": {"dimensions": "region->category"}}}
+{"id": "C3T1", "layer": "多轮-指标变更", "chain": "C3", "turn": 1, "question": "上季度订单量", "expected": {"metric": ["order_count"], "dimensions": [], "time": "last_quarter", "behavior": "query"}}
+{"id": "C3T2", "layer": "多轮-指标变更", "chain": "C3", "turn": 2, "question": "客单价呢", "expected": {"metric": ["avg_order_value"], "dimensions": [], "time": "last_quarter", "behavior": "query", "slot_diff": {"metric": "order_count->avg_order_value"}}}
+{"id": "C4T1", "layer": "多轮-指代消解", "chain": "C4", "turn": 1, "question": "华东区上个月营收", "expected": {"metric": ["sales_amount"], "dimensions": ["region=华东"], "time": "last_month", "behavior": "query"}}
+{"id": "C4T2", "layer": "多轮-指代消解", "chain": "C4", "turn": 2, "question": "华南区呢", "expected": {"metric": ["sales_amount"], "dimensions": ["region=华南"], "time": "last_month", "behavior": "query", "slot_diff": {"dimensions": "region=华东->region=华南"}}}
