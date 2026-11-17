@@ -255,3 +255,32 @@ class TestExplicitReset:
         session = store.load("s1")
         assert session.state == "IDLE"
         assert session.history == ()
+
+
+class TestFilteredDimNormalization:
+    def test_value_filtered_dim_is_dropped_from_groupby(self):
+        # 值筛选维度不重复进分组:region=华东 只进 filters(deterministic 归一化)
+        from dataclasses import replace as dc_replace
+
+        from chatbi.executor import ExecutionResult as ER
+
+        rows = [{"sales_amount": 100}]
+        pipe, store, mining, executor = _pipeline(
+            [
+                {
+                    "behavior": "query",
+                    "cube_query": {
+                        "cube": "sales",
+                        "measures": ["sales_amount"],
+                        "dimensions": ["region"],
+                        "time": {"slot": "last_month"},
+                        "filters": [{"dimension": "region", "operator": "eq", "value": "华东"}],
+                    },
+                }
+            ],
+            exec_result=ER(is_ok=True, columns=("sales_amount",), rows=tuple(rows), row_count=1),
+        )
+        resp = pipe.ask("s1", "华东区上个月营收")
+        assert resp.type == "answer"
+        assert resp.cube_query.get("dimensions") in (None, [])
+        assert resp.cube_query["filters"][0]["value"] == "华东"

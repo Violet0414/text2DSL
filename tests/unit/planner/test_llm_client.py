@@ -41,3 +41,10 @@ class TestAnthropicLlmClientConstruction:
     def test_accepts_api_key_only(self):
         client = AnthropicLlmClient(LlmConfig(api_key="ak-1"))
         assert client._config.api_key == "ak-1"
+
+
+class TestDeterministicPlanning:
+    def test_default_temperature_is_zero(self):
+        # 规划必须确定性:同问题同计划(PoC 基线复现的前提)
+        cfg = LlmConfig.from_env()
+        assert cfg.temperature == 0.0
