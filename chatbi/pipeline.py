@@ -175,6 +175,7 @@ class ChatPipeline:
             columns=exec_result.columns,
             roles=exec_result.roles,
             metric=meta,
+            cube_query=wren_cq,
             message=message,
         )
 

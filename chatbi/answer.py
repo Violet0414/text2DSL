@@ -16,6 +16,7 @@ class AnswerCard:
     columns: tuple[str, ...] = ()
     roles: dict[str, str] = field(default_factory=dict)
     metric: dict[str, Any] = field(default_factory=dict)
+    cube_query: dict[str, Any] | None = None
     message: str = ""
 
 

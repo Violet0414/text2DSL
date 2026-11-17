@@ -7,10 +7,13 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+
+from chatbi.config import DEFAULT_WREN_PROJECT_DIR
 
 EXECUTION_TIMEOUT_S = 6.0
 DEFAULT_ROW_LIMIT = 1000
@@ -40,12 +43,18 @@ class WrenCliExecutor:
     def __init__(
         self,
         runner: Runner | None = None,
-        wren_bin: str = "wren",
+        wren_bin: str | None = None,
         project_dir: str | None = None,
     ):
         self._runner = runner or subprocess.run
-        self._wren_bin = wren_bin
-        self._project_dir = project_dir
+        # wren 可执行文件解析:显式参数 > CHATBI_WREN_BIN > PATH 上的 wren
+        self._wren_bin = wren_bin or os.environ.get("CHATBI_WREN_BIN") or "wren"
+        # 项目目录:显式参数 > CHATBI_WREN_PROJECT_DIR > 默认 PoC 语义项目(wren CLI 需在项目目录运行)
+        self._project_dir = (
+            project_dir
+            or os.environ.get("CHATBI_WREN_PROJECT_DIR")
+            or str(DEFAULT_WREN_PROJECT_DIR)
+        )
 
     def execute(
         self,
@@ -57,7 +66,11 @@ class WrenCliExecutor:
         argv = [self._wren_bin, "--sql", sql, "-o", "json", "--limit", str(limit)]
         try:
             proc = self._runner(
-                argv, capture_output=True, text=True, timeout=EXECUTION_TIMEOUT_S
+                argv,
+                capture_output=True,
+                text=True,
+                timeout=EXECUTION_TIMEOUT_S,
+                cwd=self._project_dir,
             )
         except subprocess.TimeoutExpired:
             return ExecutionResult(
