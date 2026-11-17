@@ -85,3 +85,39 @@ CHATBI_WREN_BIN=$PWD/poc/.venv/bin/wren poc/.venv/bin/python \
 | 全部请求秒败 + `unexpected keyword argument` | SDK 兼容问题,检查 llm.py 是否被手改注入 temperature |
 | `no wren project found` | executor cwd 被改;应指向含 `wren_project.yml` 的目录 |
 | 服务 30s 未就绪 | 看 `/tmp/chatbi_smoke_$PORT.log` 常见为端口占用,换 `PORT=` |
+
+## Web 前端(W0,vben5)
+
+前端位于 `web/`(vue-vben-admin 5.x monorepo,apps/web-antd),与后端同仓。
+pnpm 需 ≥11(`corepack enable && corepack prepare pnpm@11.16.0 --activate`,
+本机 Node 22.23 满足 engines)。
+
+### 开发态(两个终端)
+
+```bash
+# 终端 1:FastAPI(必须设 wren 路径)
+CHATBI_WREN_BIN=$PWD/poc/.venv/bin/wren poc/.venv/bin/python -m uvicorn chatbi.api:app --port 8000
+# 终端 2:vite dev server(5666,/api 已代理到 :8000)
+cd web && pnpm dev:antd   # 浏览器 http://localhost:5666
+```
+
+登录:用户名 `chatbi`,口令取环境变量 `CHATBI_ADMIN_PASSWORD`,
+未设置时回退开发默认 `chatbi-dev`(仅限本地;生产必须显式设置)。
+
+### 生产态(单服务)
+
+```bash
+cd web && pnpm build:antd   # 产物 web/apps/web-antd/dist
+CHATBI_WREN_BIN=$PWD/poc/.venv/bin/wren poc/.venv/bin/python -m uvicorn chatbi.api:app --port 8000
+# FastAPI 检测到 dist 目录自动 StaticFiles 托管(hash 路由,无需 SPA fallback),打开 http://localhost:8000
+```
+
+### 前端 Gotchas(实测)
+
+- web/ 内已移除 vben 的 `.git`(随主仓管理)与 lefthook `prepare` 脚本
+  (否则 install 时 lefthook 会污染主仓 .git/hooks)。
+- chatbi 业务端点走统一信封 `{success,data,error,meta}`,前端用
+  `chatbiClient`(responseReturn 'body')自解包;vben 鉴权端点走 vben 契约
+  `{code,data,errorMessage}`,两套格式是显式边界,勿混用。
+- `.env.development` 已设 `VITE_NITRO_MOCK=false`(真实后端);
+  生产 apiURL 为同源 `/api`。

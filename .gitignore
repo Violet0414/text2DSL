@@ -24,3 +24,11 @@ Thumbs.db
 .claude/settings.json.bak-*
 .coverage
 chatbi_sessions.db
+
+# 前端（vben5 monorepo @ web/）：依赖与构建产物可复现，不入库
+web/node_modules/
+web/**/node_modules/
+web/**/dist/
+web/**/.turbo/
+web/.nitro/
+web/turbo-cache/

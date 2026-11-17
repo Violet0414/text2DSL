@@ -251,8 +251,9 @@ IDLE → ROUTING → FILLING → EXECUTING → ANSWERING → IDLE
 | M3 | **图表流水线（P1）** | FR-E1–E6 | 渲染成功率 ≥99%；快照稳定；表格兜底可用 | pending | — |
 | M4 | **治理后台与回归产品化（P1）** | FR-F1–F4、审计/可观测性（§六） | 回归可从后台触发；审计可查；未达标阻断发布 | pending | — |
 | M5 | **端到端验收（P0）** | NFR-1、§七 全部 | P95 ≤5s；六场景走查通过；安全评审通过 | pending | — |
+| W0 | **Web 前端 v0（vben5）** | 聊天问数核心 UI（S1–S6 呈现，表格形态）、FR-C5 会话列表/历史回看、vben 登录适配端点；图表留 M3 | pnpm build 通过；冒烟 S1/S2/S4/S5 + 会话回看；前端零口径计算 | pending | .claude/plans/web-vben.plan.md |
 
-依赖关系：M1 → M2 → {M3, M4} → M5。M1 是全部后继的前置。
+依赖关系：M1 → M2 → {M3, M4} → M5。M1 是全部后继的前置。W0 与 M2 并行（复用其会话端点，M3 图表在后端 ChartSpec 就绪后接入）。
 
 ---
 
