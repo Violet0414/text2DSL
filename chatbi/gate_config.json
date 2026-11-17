@@ -1,0 +1,7 @@
+{
+  "sales_amount": {"confirmed": true, "trial_passed": true, "tool_enabled": true},
+  "sales_amount_with_tax": {"confirmed": true, "trial_passed": true, "tool_enabled": true},
+  "order_count": {"confirmed": true, "trial_passed": true, "tool_enabled": true},
+  "avg_order_value": {"confirmed": true, "trial_passed": true, "tool_enabled": true},
+  "refund_rate": {"confirmed": true, "trial_passed": true, "tool_enabled": true}
+}

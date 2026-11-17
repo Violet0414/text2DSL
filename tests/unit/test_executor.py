@@ -6,8 +6,6 @@ import json
 import subprocess
 from dataclasses import dataclass
 
-import pytest
-
 from chatbi.executor import WrenCliExecutor, derive_roles
 
 
@@ -44,8 +42,10 @@ class TestJsonlParsing:
     def test_parses_jsonl_rows_not_array(self):
         # 实测事实 #4:wren -o json 输出 JSONL(逐行 JSON 对象,非数组)
         lines = (
-            json.dumps({"channel": "华东", "sales_amount": 100}) + "\n"
-            + json.dumps({"channel": "华南", "sales_amount": 200}) + "\n"
+            json.dumps({"channel": "华东", "sales_amount": 100})
+            + "\n"
+            + json.dumps({"channel": "华南", "sales_amount": 200})
+            + "\n"
         )
         result = _executor(FakeSubprocess(FakeCompleted(stdout=lines))).execute(SQL)
         assert result.is_ok
@@ -129,7 +129,11 @@ class TestDeriveRoles:
 
     def test_executor_carries_roles(self):
         lines = json.dumps({"channel": "华东", "sales_amount": 100}) + "\n"
-        cube_query = {"cube": "sales", "measures": ["sales_amount"], "dimensions": ["channel"]}
+        cube_query = {
+            "cube": "sales",
+            "measures": ["sales_amount"],
+            "dimensions": ["channel"],
+        }
         result = _executor(FakeSubprocess(FakeCompleted(stdout=lines))).execute(
             SQL, cube_query=cube_query
         )

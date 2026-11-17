@@ -21,7 +21,10 @@ def _mdl_with_descriptions(desc_by_measure: dict[str, str]) -> dict:
             {
                 "name": "sales",
                 "measures": [
-                    {"name": m, "properties": {"description": desc_by_measure.get(m, "")}}
+                    {
+                        "name": m,
+                        "properties": {"description": desc_by_measure.get(m, "")},
+                    }
                     for m in MEASURES
                 ],
                 "dimensions": [],
@@ -33,7 +36,8 @@ def _mdl_with_descriptions(desc_by_measure: dict[str, str]) -> dict:
 
 def _all_open_flags() -> dict[str, dict[str, bool]]:
     return {
-        m: {"confirmed": True, "trial_passed": True, "tool_enabled": True} for m in MEASURES
+        m: {"confirmed": True, "trial_passed": True, "tool_enabled": True}
+        for m in MEASURES
     }
 
 
@@ -80,14 +84,18 @@ class TestFourDoors:
     def test_missing_description_closes_fourth_door(self):
         descriptions = {m: "口径说明" for m in MEASURES}
         descriptions["refund_rate"] = ""
-        verdict = _make_gate(descriptions=descriptions).check_query(_query(["refund_rate"]))
+        verdict = _make_gate(descriptions=descriptions).check_query(
+            _query(["refund_rate"])
+        )
         assert not verdict.passed
         assert "description" in verdict.reasons["refund_rate"]
 
     def test_partial_denial_reports_only_denied_members(self):
         flags = _all_open_flags()
         flags["refund_rate"]["tool_enabled"] = False
-        verdict = _make_gate(flags=flags).check_query(_query(["sales_amount", "refund_rate"]))
+        verdict = _make_gate(flags=flags).check_query(
+            _query(["sales_amount", "refund_rate"])
+        )
         assert verdict.denied == ("refund_rate",)
         assert "sales_amount" not in verdict.denied
 
@@ -98,4 +106,8 @@ class TestDefaultConfig:
         repo = FileGateStateRepository()
         flags = repo.get_flags()
         for m in MEASURES:
-            assert flags[m] == {"confirmed": True, "trial_passed": True, "tool_enabled": True}
+            assert flags[m] == {
+                "confirmed": True,
+                "trial_passed": True,
+                "tool_enabled": True,
+            }
