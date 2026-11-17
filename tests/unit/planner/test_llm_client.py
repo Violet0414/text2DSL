@@ -48,3 +48,35 @@ class TestDeterministicPlanning:
         # 规划必须确定性:同问题同计划(PoC 基线复现的前提)
         cfg = LlmConfig.from_env()
         assert cfg.temperature == 0.0
+
+
+class TestSdkCompat:
+    def test_temperature_omitted_when_sdk_does_not_support_it(self):
+        # 实测 anthropic SDK 2.8.0 的 Messages.create 已移除 temperature
+        from chatbi.planner.llm import _build_request_kwargs
+
+        kwargs = _build_request_kwargs(
+            LlmConfig(model="m", max_tokens=10, temperature=0.0),
+            "sys",
+            [{"role": "user", "content": "q"}],
+            None,
+            supports_temperature=False,
+        )
+        assert "temperature" not in kwargs
+        assert kwargs["model"] == "m"
+
+    def test_temperature_included_when_supported(self):
+        from chatbi.planner.llm import _build_request_kwargs
+
+        kwargs = _build_request_kwargs(
+            LlmConfig(model="m", max_tokens=10, temperature=0.0),
+            "sys",
+            [{"role": "user", "content": "q"}],
+            None,
+            supports_temperature=True,
+        )
+        assert kwargs["temperature"] == 0.0
+
+    def test_real_sdk_capability_detected(self):
+        client = AnthropicLlmClient(LlmConfig(auth_token="tok-1"))
+        assert isinstance(client._supports_temperature, bool)

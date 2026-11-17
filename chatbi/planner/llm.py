@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import time
 from dataclasses import dataclass
@@ -34,9 +35,36 @@ class LlmConfigError(RuntimeError):
     """LLM 配置不完整(appkey 未填)时抛出,构造期 fail fast。"""
 
 
+def _build_request_kwargs(
+    config: LlmConfig,
+    system: str,
+    messages: list[dict[str, Any]],
+    tool_schema: dict[str, Any] | None,
+    supports_temperature: bool,
+) -> dict[str, Any]:
+    """组装 messages.create 请求参数;temperature 仅在 SDK 支持时传入。"""
+    kwargs: dict[str, Any] = {
+        "model": config.model,
+        "max_tokens": config.max_tokens,
+        "system": system,
+        "messages": messages,
+    }
+    if supports_temperature:
+        kwargs["temperature"] = config.temperature
+    if tool_schema is not None:
+        kwargs["tools"] = [
+            {
+                "name": "plan",
+                "description": "输出受控问数规划结果(行为分支 + cube query 参数)",
+                "input_schema": tool_schema,
+            }
+        ]
+        kwargs["tool_choice"] = {"type": "tool", "name": "plan"}
+    return kwargs
+
+
 class AnthropicLlmClient:
     """Anthropic 兼容实现:凭据/模型/base_url 全部来自 LlmConfig(环境变量)。
-
     凭据二选一:codingPlan 的 ANTHROPIC_AUTH_TOKEN(Bearer)或标准 ANTHROPIC_API_KEY
     (x-api-key);二者皆缺则构造期 fail fast。
     """
@@ -53,6 +81,10 @@ class AnthropicLlmClient:
         else:
             client_kwargs["auth_token"] = config.auth_token
         self._client = Anthropic(**client_kwargs)
+        # SDK 兼容:部分新版 SDK 的 Messages.create 已移除 temperature 参数(实测 2.8.0)
+        self._supports_temperature = (
+            "temperature" in inspect.signature(self._client.messages.create).parameters
+        )
 
     def call(
         self,
@@ -66,22 +98,13 @@ class AnthropicLlmClient:
         tool_input: dict[str, Any] | None = None
         text = ""
         try:
-            kwargs: dict[str, Any] = {
-                "model": self._config.model,
-                "max_tokens": self._config.max_tokens,
-                "temperature": self._config.temperature,
-                "system": system,
-                "messages": messages,
-            }
-            if tool_schema is not None:
-                kwargs["tools"] = [
-                    {
-                        "name": "plan",
-                        "description": "输出受控问数规划结果(行为分支 + cube query 参数)",
-                        "input_schema": tool_schema,
-                    }
-                ]
-                kwargs["tool_choice"] = {"type": "tool", "name": "plan"}
+            kwargs: dict[str, Any] = _build_request_kwargs(
+                self._config,
+                system,
+                messages,
+                tool_schema,
+                supports_temperature=self._supports_temperature,
+            )
             resp = self._client.messages.create(**kwargs)
             tool_input = _extract_tool_input(resp)
             text = _extract_text(resp) or (
