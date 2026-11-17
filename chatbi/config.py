@@ -21,6 +21,7 @@ class LlmConfig:
 
     model: str = "claude-sonnet-5-5"
     max_tokens: int = 2048
+    temperature: float = 0.0
     api_key: str | None = None
     auth_token: str | None = None
     base_url: str | None = None
@@ -30,6 +31,7 @@ class LlmConfig:
         return cls(
             model=os.environ.get("CHATBI_LLM_MODEL", "claude-sonnet-5-5"),
             max_tokens=int(os.environ.get("CHATBI_LLM_MAX_TOKENS", "2048")),
+            temperature=float(os.environ.get("CHATBI_LLM_TEMPERATURE", "0")),
             api_key=os.environ.get("ANTHROPIC_API_KEY"),
             auth_token=os.environ.get("ANTHROPIC_AUTH_TOKEN"),
             base_url=os.environ.get("ANTHROPIC_BASE_URL"),

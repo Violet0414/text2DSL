@@ -106,7 +106,12 @@ class ChatPipeline:
     # --- query 路径 ---
 
     def _on_query(self, session: ChatSession, question: str, result: PlanResult):
-        wren_cq = result.cube_query or {}
+        wren_cq = self._drop_dims_covered_by_filters(result.cube_query or {})
+        if wren_cq != result.cube_query:
+            # 归一化改变了查询 → 以归一化后的查询重新生成 SQL,保证执行与判定一致
+            result = replace(
+                result, cube_query=wren_cq, generated_sql=self._to_sql(wren_cq)
+            )
         verdict = self._gate.check_query(wren_cq)
         if not verdict.passed:
             self._sessions.save(replace(session, state="IDLE"))
@@ -303,6 +308,20 @@ class ChatPipeline:
 
     def _meta_provider(self):
         return self._gate.get_meta if hasattr(self._gate, "get_meta") else None
+
+    def _drop_dims_covered_by_filters(self, wren_cq: dict) -> dict:
+        """确定性归一化:已被值筛选的维度不重复进分组维度(FR-A3 规范形态)。
+
+        例:region=华东 只进 filters;若分区维度同时出现在 dimensions,
+        会产生冗余分组与判定歧义。
+        """
+        filtered = {f.get("dimension") for f in wren_cq.get("filters") or []}
+        dims = [d for d in wren_cq.get("dimensions") or [] if d not in filtered]
+        if not dims:
+            wren_cq = {k: v for k, v in wren_cq.items() if k != "dimensions"}
+        else:
+            wren_cq = {**wren_cq, "dimensions": dims}
+        return wren_cq
 
     def _metric_names(self) -> tuple[str, ...]:
         names: list[str] = []

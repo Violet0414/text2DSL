@@ -260,12 +260,11 @@ class TestExplicitReset:
 class TestFilteredDimNormalization:
     def test_value_filtered_dim_is_dropped_from_groupby(self):
         # 值筛选维度不重复进分组:region=华东 只进 filters(deterministic 归一化)
-        from dataclasses import replace as dc_replace
 
         from chatbi.executor import ExecutionResult as ER
 
         rows = [{"sales_amount": 100}]
-        pipe, store, mining, executor = _pipeline(
+        pipe, _store, _mining, _executor = _pipeline(
             [
                 {
                     "behavior": "query",
@@ -274,11 +273,15 @@ class TestFilteredDimNormalization:
                         "measures": ["sales_amount"],
                         "dimensions": ["region"],
                         "time": {"slot": "last_month"},
-                        "filters": [{"dimension": "region", "operator": "eq", "value": "华东"}],
+                        "filters": [
+                            {"dimension": "region", "operator": "eq", "value": "华东"}
+                        ],
                     },
                 }
             ],
-            exec_result=ER(is_ok=True, columns=("sales_amount",), rows=tuple(rows), row_count=1),
+            exec_result=ER(
+                is_ok=True, columns=("sales_amount",), rows=tuple(rows), row_count=1
+            ),
         )
         resp = pipe.ask("s1", "华东区上个月营收")
         assert resp.type == "answer"
