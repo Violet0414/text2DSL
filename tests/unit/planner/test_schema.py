@@ -50,15 +50,19 @@ class TestPlannerToolSchema:
         cq = schema["properties"]["cube_query"]["properties"]
         assert set(cq["measures"]["items"]["enum"]) == set(EXPECTED_MEMBERS["measures"])
         assert set(cq["cube"]["enum"]) == {"sales"}
-        assert set(cq["dimensions"]["items"]["enum"]) == set(EXPECTED_MEMBERS["dimensions"])
+        assert set(cq["dimensions"]["items"]["enum"]) == set(
+            EXPECTED_MEMBERS["dimensions"]
+        )
 
     def test_filters_dimension_enum_and_operators(self):
         mdl = load_mdl(MDL_PATH)
         schema = planner_tool_schema(cube_members(mdl))
-        filter_props = schema["properties"]["cube_query"]["properties"]["filters"]["items"][
-            "properties"
-        ]
-        assert set(filter_props["dimension"]["enum"]) == set(EXPECTED_MEMBERS["dimensions"])
+        filter_props = schema["properties"]["cube_query"]["properties"]["filters"][
+            "items"
+        ]["properties"]
+        assert set(filter_props["dimension"]["enum"]) == set(
+            EXPECTED_MEMBERS["dimensions"]
+        )
         assert set(filter_props["operator"]["enum"]) == {"eq", "not_eq", "in", "not_in"}
 
     def test_time_slot_enum_is_fixed_vocabulary(self):

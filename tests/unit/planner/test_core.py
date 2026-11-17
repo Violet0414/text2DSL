@@ -18,8 +18,12 @@ class FakeLlmClient:
         self._outputs = list(outputs)
         self.calls: list[dict] = []
 
-    def call(self, system: str, messages: list[dict], tool_schema: dict | None) -> LlmCall:
-        self.calls.append({"system": system, "messages": messages, "tool_schema": tool_schema})
+    def call(
+        self, system: str, messages: list[dict], tool_schema: dict | None
+    ) -> LlmCall:
+        self.calls.append(
+            {"system": system, "messages": messages, "tool_schema": tool_schema}
+        )
         out = self._outputs.pop(0)
         if isinstance(out, LlmCall):
             return out
@@ -33,7 +37,9 @@ class FakeLlmClient:
         assert not self._outputs, f"FakeLlm 尚有未消费的预置输出: {self._outputs}"
 
 
-def _query_payload(cube: str = "sales", measures: list[str] | None = None, **time_spec) -> dict:
+def _query_payload(
+    cube: str = "sales", measures: list[str] | None = None, **time_spec
+) -> dict:
     payload = {
         "behavior": "query",
         "cube_query": {
@@ -59,7 +65,10 @@ def test_query_behavior_produces_validated_cube_query_and_sql():
     assert result.validation == "passed"
     assert result.cube_query is not None
     assert result.cube_query["measures"] == ["sales_amount"]
-    assert result.cube_query["timeDimensions"][0]["dateRange"] == ["2026-10-01", "2026-11-01"]
+    assert result.cube_query["timeDimensions"][0]["dateRange"] == [
+        "2026-10-01",
+        "2026-11-01",
+    ]
     assert result.cube_query["timeDimensions"][0]["granularity"] == "month"
     assert result.generated_sql and "sales_amount" in result.generated_sql
     fake.assert_no_pending()
@@ -100,7 +109,9 @@ def test_miss_behavior_passthrough():
 
 
 def test_chitchat_behavior_passthrough():
-    fake = FakeLlmClient([{"behavior": "chitchat", "reply": "我是问数助手,请提数据问题"}])
+    fake = FakeLlmClient(
+        [{"behavior": "chitchat", "reply": "我是问数助手,请提数据问题"}]
+    )
     result = plan("帮我写个周报", llm=fake)
 
     assert result.behavior == "chitchat"
@@ -167,7 +178,12 @@ def test_time_slot_inherited_from_previous_turn():
             }
         ],
     }
-    history = [{"question": "上个月各渠道营收", "result": {"behavior": "query", "cube_query": prev_cube_query}}]
+    history = [
+        {
+            "question": "上个月各渠道营收",
+            "result": {"behavior": "query", "cube_query": prev_cube_query},
+        }
+    ]
     fake = FakeLlmClient([_query_payload()])  # 当前轮无 time 槽位
     result = plan("华南区呢", history=history, llm=fake)
 
@@ -177,7 +193,10 @@ def test_time_slot_inherited_from_previous_turn():
 
 def test_history_is_sent_to_llm_as_user_assistant_pairs():
     history = [
-        {"question": "上个月营收", "result": {"behavior": "query", "cube_query": {"cube": "sales"}}}
+        {
+            "question": "上个月营收",
+            "result": {"behavior": "query", "cube_query": {"cube": "sales"}},
+        }
     ]
     fake = FakeLlmClient([{"behavior": "chitchat", "reply": "ok"}])
     plan("谢谢", history=history, llm=fake)
@@ -193,7 +212,9 @@ def test_history_is_sent_to_llm_as_user_assistant_pairs():
 
 
 def test_llm_error_returns_error_behavior():
-    fake = FakeLlmClient([LlmCall(model="fake-model", output_text="", latency_ms=0, error="boom")])
+    fake = FakeLlmClient(
+        [LlmCall(model="fake-model", output_text="", latency_ms=0, error="boom")]
+    )
     result = plan("任意问题", llm=fake)
 
     assert result.behavior == "error"
@@ -216,9 +237,9 @@ def test_unknown_behavior_normalized_to_error():
 
 
 def test_plan_result_is_frozen_dataclass():
-    result = PlanResult(question="q")
+    result = PlanResult(question="q", behavior="query")
     try:
         result.behavior = "x"  # type: ignore[misc]
-    except Exception:
+    except Exception:  # noqa: BLE001 — frozen dataclass 赋值抛 FrozenInstanceError
         return
     raise AssertionError("PlanResult 应为 frozen dataclass")

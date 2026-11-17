@@ -42,21 +42,22 @@ def test_mom_compare_is_previous_month():
 
 def test_explicit_range_passthrough_with_granularity():
     expanded = expand_time(
-        "explicit", TODAY, explicit_range=["2026-01-01", "2026-02-01"], granularity="day"
+        "explicit",
+        TODAY,
+        explicit_range=["2026-01-01", "2026-02-01"],
+        granularity="day",
     )
     assert expanded.base.to_strings() == ["2026-01-01", "2026-02-01"]
     assert expanded.granularity == "day"
 
 
 def test_explicit_without_range_raises():
-    import pytest
 
     with pytest.raises(ValueError):
         expand_time("explicit", TODAY)
 
 
 def test_unknown_slot_raises():
-    import pytest
 
     with pytest.raises(ValueError):
         expand_time("tomorrow_forever", TODAY)
@@ -66,6 +67,6 @@ def test_daterange_is_frozen():
     dr = DateRange(TODAY, TODAY)
     try:
         dr.start = date(2020, 1, 1)  # type: ignore[misc]
-    except Exception:
+    except Exception:  # noqa: BLE001 — frozen dataclass 赋值抛 FrozenInstanceError
         return
     raise AssertionError("DateRange 应为 frozen dataclass")
