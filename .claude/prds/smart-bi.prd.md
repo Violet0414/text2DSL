@@ -246,7 +246,7 @@ IDLE → ROUTING → FILLING → EXECUTING → ANSWERING → IDLE
 
 | ID | 里程碑 | 范围 | 退出标准 | 状态 | Plan |
 |---|---|---|---|---|---|
-| M1 | **对话问数核心（P0）** | FR-A1–A5、FR-B1–B4、FR-D1–D4、NFR-2 | 黄金集 58/58 全对；状态机全路径跑通；两条红线 100% | in-progress | .claude/plans/smart-bi.plan.md |
+| M1 | **对话问数核心（P0）** | FR-A1–A5、FR-B1–B4、FR-D1–D4、NFR-2 | 黄金集 58/58 全对；状态机全路径跑通；两条红线 100% | complete | .claude/plans/smart-bi.plan.md |
 | M2 | **多轮与会话管理（P0）** | FR-C1–C5、RLS 最简（§六 NFR-3） | 多轮继承 ≥85% 基线保持；trace_id 回放可用 | pending | — |
 | M3 | **图表流水线（P1）** | FR-E1–E6 | 渲染成功率 ≥99%；快照稳定；表格兜底可用 | pending | — |
 | M4 | **治理后台与回归产品化（P1）** | FR-F1–F4、审计/可观测性（§六） | 回归可从后台触发；审计可查；未达标阻断发布 | pending | — |
