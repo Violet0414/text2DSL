@@ -42,9 +42,6 @@ class TestSessionRepositories:
 
     def test_history_is_capped_at_five_turns(self):
         repo = InMemorySessionRepository()
-        s = ChatSession(session_id="s9", state="ANSWERING")
-        for i in range(8):
-            s = ChatPipeline_append_turn(s, i) if False else s
         # 直接构造超限历史再保存,验证保存时截断
         turns = tuple({"question": f"q{i}", "result": {}} for i in range(9))
         capped = _session("s9").with_history(turns)
@@ -55,13 +52,22 @@ class TestSessionRepositories:
 class TestMiningRepositories:
     def test_memory_candidate_roundtrip(self):
         repo = InMemoryMiningRepository()
-        cid = repo.record(MiningCandidate(question="库存周转率", normalized="库存周转率", user="u1"))
+        cid = repo.record(
+            MiningCandidate(question="库存周转率", normalized="库存周转率", user="u1")
+        )
         assert cid
         assert repo.list_candidates()[0].question == "库存周转率"
 
     def test_sqlite_candidate_roundtrip(self, tmp_path):
         repo = SqliteMiningRepository(tmp_path / "m.db")
-        cid = repo.record(MiningCandidate(question="库存周转率", normalized="库存周转率", user="u1", retrieval_context="ctx"))
+        cid = repo.record(
+            MiningCandidate(
+                question="库存周转率",
+                normalized="库存周转率",
+                user="u1",
+                retrieval_context="ctx",
+            )
+        )
         cands = repo.list_candidates()
         assert len(cands) == 1
         assert cands[0].candidate_id == cid

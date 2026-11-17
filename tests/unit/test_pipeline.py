@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
-from chatbi.executor import ExecutionResult
+from chatbi.executor import ExecutionResult, derive_roles
 from chatbi.gate import FileGateStateRepository, GovernanceGate
 from chatbi.pipeline import ChatPipeline
-from chatbi.planner.core import PlanResult
 from chatbi.planner.llm import LlmCall
 from chatbi.store.memory import InMemoryMiningRepository, InMemorySessionRepository
 
-PREV_TD = [{"dimension": "order_date", "dateRange": ["2026-10-01", "2026-11-01"], "granularity": "month"}]
+PREV_TD = [
+    {
+        "dimension": "order_date",
+        "dateRange": ["2026-10-01", "2026-11-01"],
+        "granularity": "month",
+    }
+]
 
 
 class FakeLlmClient:
@@ -50,12 +56,17 @@ class StubExecutor:
 
     def execute(self, sql, limit=1000, cube_query=None):
         self.last_sql = sql
-        return self.result
+        return replace(
+            self.result,
+            roles=derive_roles(cube_query) if cube_query else self.result.roles,
+        )
 
 
 def _rows_result(rows):
     cols = tuple(rows[0].keys()) if rows else ()
-    return ExecutionResult(is_ok=True, columns=cols, rows=tuple(rows), row_count=len(rows))
+    return ExecutionResult(
+        is_ok=True, columns=cols, rows=tuple(rows), row_count=len(rows)
+    )
 
 
 def _pipeline(llm_outputs, exec_result=None, gate_flags=None):
@@ -64,7 +75,9 @@ def _pipeline(llm_outputs, exec_result=None, gate_flags=None):
     gate = GovernanceGate(FileGateStateRepository(), _load_real_mdl())
     if gate_flags is not None:
         gate = GovernanceGate(_FakeGateRepo(gate_flags), _load_real_mdl())
-    executor = StubExecutor(exec_result or _rows_result([{"channel": "华东", "sales_amount": 100}]))
+    executor = StubExecutor(
+        exec_result or _rows_result([{"channel": "华东", "sales_amount": 100}])
+    )
     pipe = ChatPipeline(
         session_store=store,
         mining_store=mining,
@@ -84,8 +97,8 @@ class _FakeGateRepo:
 
 
 def _load_real_mdl():
-    from chatbi.planner.schema import load_mdl
     from chatbi.planner.core import MDL_PATH
+    from chatbi.planner.schema import load_mdl
 
     return load_mdl(MDL_PATH)
 
@@ -101,14 +114,18 @@ def _query_out(measures=None, slot=None, dimensions=None):
 
 class TestChitchatAndMiss:
     def test_chitchat_bypasses_to_plain_reply(self):
-        pipe, store, mining, _ = _pipeline([{"behavior": "chitchat", "reply": "我是问数助手"}])
+        pipe, _store, mining, _ = _pipeline(
+            [{"behavior": "chitchat", "reply": "我是问数助手"}]
+        )
         resp = pipe.ask("s1", "帮我写个周报")
         assert resp.type == "reply"
         assert "问数助手" in resp.text
         assert len(mining.list_candidates()) == 0
 
     def test_miss_records_mining_candidate_and_lists_metrics(self):
-        pipe, store, mining, _ = _pipeline([{"behavior": "miss", "reply": "未找到「库存周转率」"}])
+        pipe, _store, mining, _ = _pipeline(
+            [{"behavior": "miss", "reply": "未找到「库存周转率」"}]
+        )
         resp = pipe.ask("s1", "库存周转率是多少")
         assert resp.type == "miss"
         assert "库存周转率" in resp.message
@@ -121,7 +138,9 @@ class TestChitchatAndMiss:
 
 class TestQueryHappyPath:
     def test_query_returns_answer_card_with_metric_metadata(self):
-        pipe, store, mining, _ = _pipeline([_query_out(slot="last_month", dimensions=["channel"])])
+        pipe, store, _mining, _ = _pipeline(
+            [_query_out(slot="last_month", dimensions=["channel"])]
+        )
         resp = pipe.ask("s1", "上个月各渠道营收")
         assert resp.type == "answer"
         assert resp.rows[0]["channel"] == "华东"
@@ -130,7 +149,11 @@ class TestQueryHappyPath:
         for key in ("name", "definition", "owner", "version", "freshness"):
             assert key in resp.metric
         assert resp.columns == ("channel", "sales_amount")
-        assert resp.roles == {"channel": "dimension", "sales_amount": "measure"}
+        assert resp.roles == {
+            "channel": "dimension",
+            "sales_amount": "measure",
+            "order_date": "time",
+        }
         # 会话历史已落
         session = store.load("s1")
         assert session.state == "ANSWERING"
@@ -140,7 +163,7 @@ class TestQueryHappyPath:
 class TestClarifyFlow:
     def test_bare_metric_without_time_clarifies_time_first(self):
         # FR-B3:裸指标无修饰 → 模板澄清时间(不走 LLM 文案)
-        pipe, store, mining, _ = _pipeline([_query_out()])
+        pipe, store, _mining, _ = _pipeline([_query_out()])
         resp = pipe.ask("s1", "查一下营收")
         assert resp.type == "clarification"
         assert resp.clarify_step == "time"
@@ -152,7 +175,7 @@ class TestClarifyFlow:
         assert session.pending_plan is not None
 
     def test_user_option_resolves_clarification_and_answers(self):
-        pipe, store, mining, executor = _pipeline(
+        pipe, store, _mining, executor = _pipeline(
             [_query_out()], exec_result=_rows_result([{"sales_amount": 42}])
         )
         pipe.ask("s1", "查一下营收")
@@ -181,10 +204,18 @@ class TestGateAndDegrade:
     def test_gate_closed_metric_is_refused(self):
         flags = {
             m: {"confirmed": True, "trial_passed": True, "tool_enabled": True}
-            for m in ["sales_amount", "sales_amount_with_tax", "order_count", "avg_order_value", "refund_rate"]
+            for m in [
+                "sales_amount",
+                "sales_amount_with_tax",
+                "order_count",
+                "avg_order_value",
+                "refund_rate",
+            ]
         }
         flags["sales_amount"]["tool_enabled"] = False
-        pipe, store, mining, _ = _pipeline([_query_out(slot="last_month")], gate_flags=flags)
+        pipe, store, _mining, _ = _pipeline(
+            [_query_out(slot="last_month")], gate_flags=flags
+        )
         resp = pipe.ask("s1", "上个月营收")
         assert resp.type == "miss"
         assert "sales_amount" in resp.message
@@ -196,14 +227,18 @@ class TestGateAndDegrade:
         from chatbi.executor import ExecutionResult as ER
 
         fail = ER(is_ok=False, error_class="timeout", error_message="执行超时(>6s)")
-        pipe, store, mining, _ = _pipeline([_query_out(slot="last_month")], exec_result=fail)
+        pipe, _store, _mining, _ = _pipeline(
+            [_query_out(slot="last_month")], exec_result=fail
+        )
         resp = pipe.ask("s1", "上个月营收")
         assert resp.type == "error"
         assert "超时" in resp.message
         assert resp.rows == ()
 
     def test_empty_rows_get_explicit_explanation(self):
-        pipe, store, mining, _ = _pipeline([_query_out(slot="last_month")], exec_result=_rows_result([]))
+        pipe, _store, _mining, _ = _pipeline(
+            [_query_out(slot="last_month")], exec_result=_rows_result([])
+        )
         resp = pipe.ask("s1", "上个月营收")
         assert resp.type == "answer"
         assert resp.rows == ()
@@ -213,7 +248,7 @@ class TestGateAndDegrade:
 class TestExplicitReset:
     def test_reset_phrase_clears_context(self):
         # FR-C4:重新问/清空 → 上下文清空(基础版)
-        pipe, store, mining, _ = _pipeline([_query_out(slot="last_month")])
+        pipe, store, _mining, _ = _pipeline([_query_out(slot="last_month")])
         pipe.ask("s1", "上个月营收")
         resp = pipe.ask("s1", "重新问")
         assert resp.type == "reply"
