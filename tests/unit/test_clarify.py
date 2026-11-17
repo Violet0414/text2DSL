@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from chatbi.clarify import (
     STEP_ORDER,
-    Clarification,
     ClarifyStep,
     normalize_dimension_value,
     render_clarification,
@@ -20,10 +19,9 @@ def test_step_order_is_tax_then_time_then_dimension():
 
 def test_tax_clarification_snapshot_stable():
     # FR-B2:模板同输入同文案
-    kwargs = dict(question="本月销售额", restated="查询「销售额」")
+    kwargs = {"question": "本月销售额", "restated": "查询「销售额」"}
     a = render_clarification(step="tax", **kwargs)
-    b = render_clarification(step="tax", **kwargs
-    )
+    b = render_clarification(step="tax", **kwargs)
     assert a == b
     assert a.template_id == "clarify_tax"
     assert a.options == ("不含税(营收)", "含税")
@@ -56,7 +54,9 @@ def test_dimension_clarification_lists_enum_options():
 def test_normalize_dimension_value_strips_fullwidth_and_space():
     # FR-B4:归一化后仍无法匹配才澄清
     assert normalize_dimension_value(" 华东 ") == "华东"
-    assert normalize_dimension_value("华东区") == "华东区"  # 后缀不自动剥(由归一化映射处理)
+    assert (
+        normalize_dimension_value("华东区") == "华东区"
+    )  # 后缀不自动剥(由归一化映射处理)
 
 
 def test_normalize_dimension_value_fullwidth_to_halfwidth():
