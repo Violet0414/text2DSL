@@ -64,6 +64,7 @@ class PlanResult:
     question: str
     behavior: str
     cube_query: dict[str, Any] | None = None
+    time_slot: str | None = None  # 原始时间槽位(None=未提时间/继承),服务层 FR-B3 兜底用
     cube_queries: tuple[dict[str, Any], ...] = ()  # yoy/mom 展开为 base+compare
     generated_sql: str | None = None
     clarify_question: str | None = None
@@ -321,6 +322,7 @@ def plan(
             question=question,
             behavior="query",
             cube_query=validated,
+            time_slot=(parsed["cube_query"].get("time") or {}).get("slot"),
             generated_sql=sql,
             validation="passed" if status is None else status,
             llm_latency_ms=call.latency_ms,

@@ -37,6 +37,18 @@ TIME_OPTION_TO_SLOT = {
     "全部时间": "all_time",
 }
 _TAX_HINTS = ("含税", "口径")
+# FR-B3 总览泛问句后缀:出现即视为"默认全部时间"意图,不做裸指标时间兜底
+OVERVIEW_SUFFIXES = (
+    "情况",
+    "怎么样",
+    "多少",
+    "对比",
+    "趋势",
+    "如何",
+    "整体",
+    "总共",
+    "概览",
+)
 
 
 class ChatPipeline:
@@ -123,6 +135,9 @@ class ChatPipeline:
         has_time = bool(wren_cq.get("timeDimensions"))
         if not has_time and not has_dims:
             # FR-B3 裸指标无修饰 → 模板澄清时间
+            return self._enter_time_clarify(session, wren_cq)
+        if self._should_force_time_clarify(question, wren_cq, result.time_slot):
+            # FR-B3 确定性兜底:裸指标被 LLM 漂移为 all_time 缺省时仍强制澄清
             return self._enter_time_clarify(session, wren_cq)
         return self._execute_and_answer(session, question, wren_cq, result)
 
@@ -310,18 +325,36 @@ class ChatPipeline:
         return self._gate.get_meta if hasattr(self._gate, "get_meta") else None
 
     def _drop_dims_covered_by_filters(self, wren_cq: dict) -> dict:
-        """确定性归一化:已被值筛选的维度不重复进分组维度(FR-A3 规范形态)。
+        """确定性归一化:被单值(eq)筛选的维度不重复进分组维度(FR-A3 规范形态)。
 
-        例:region=华东 只进 filters;若分区维度同时出现在 dimensions,
-        会产生冗余分组与判定歧义。
+        in 多值筛选是多行对比,分组维度必须保留;仅 eq 单值筛选产生冗余分组。
         """
-        filtered = {f.get("dimension") for f in wren_cq.get("filters") or []}
-        dims = [d for d in wren_cq.get("dimensions") or [] if d not in filtered]
+        eq_filtered = {
+            f.get("dimension")
+            for f in wren_cq.get("filters") or []
+            if f.get("operator") == "eq"
+        }
+        dims = [d for d in wren_cq.get("dimensions") or [] if d not in eq_filtered]
         if not dims:
             wren_cq = {k: v for k, v in wren_cq.items() if k != "dimensions"}
         else:
             wren_cq = {**wren_cq, "dimensions": dims}
         return wren_cq
+
+    def _should_force_time_clarify(
+        self, question: str, wren_cq: dict, time_slot: str | None
+    ) -> bool:
+        """FR-B3 确定性兜底:裸指标(无维度/筛选)且时间来自 all_time 缺省或缺失时,
+        若问题无总览泛问后缀 → 强制澄清时间,不依赖 LLM 自觉。
+
+        显式槽位与多轮继承时间不兜底;总览泛问句(情况/怎么样/多少…)不兜底。
+        """
+        if wren_cq.get("dimensions") or wren_cq.get("filters"):
+            return False
+        has_time = bool(wren_cq.get("timeDimensions"))
+        if has_time and time_slot != "all_time":
+            return False  # 显式或继承时间,不兜底
+        return not any(suffix in question for suffix in OVERVIEW_SUFFIXES)
 
     def _metric_names(self) -> tuple[str, ...]:
         names: list[str] = []

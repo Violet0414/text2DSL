@@ -304,13 +304,20 @@ class TestInFilterKeepsDim:
                         "measures": ["sales_amount"],
                         "dimensions": ["region"],
                         "filters": [
-                            {"dimension": "region", "operator": "in", "value": ["华东", "华北"]}
+                            {
+                                "dimension": "region",
+                                "operator": "in",
+                                "value": ["华东", "华北"],
+                            }
                         ],
                     },
                 }
             ],
             exec_result=ER(
-                is_ok=True, columns=("region", "sales_amount"), rows=tuple(rows), row_count=1
+                is_ok=True,
+                columns=("region", "sales_amount"),
+                rows=tuple(rows),
+                row_count=1,
             ),
         )
         resp = pipe.ask("s1", "华东和华北的营收对比")
@@ -321,9 +328,7 @@ class TestInFilterKeepsDim:
 class TestBareMetricTimeGuard:
     def test_bare_metric_word_without_overview_suffix_forces_time_clarify(self):
         # FR-B3 兜底:裸指标词(退款率)漂移为 all_time 时,服务层强制澄清时间
-        pipe, _store, _mining, _executor = _pipeline(
-            [_query_out(slot="all_time")]
-        )
+        pipe, _store, _mining, _executor = _pipeline([_query_out(slot="all_time")])
         resp = pipe.ask("s1", "退款率")
         assert resp.type == "clarification"
         assert resp.clarify_step == "time"
