@@ -34,7 +34,9 @@ def _client(pipe=None) -> TestClient:
 class TestEnvelope:
     def test_ask_returns_unified_envelope(self):
         pipe = FakePipe()
-        resp = _client(pipe).post("/api/ask", json={"sessionId": "s1", "question": "hi"})
+        resp = _client(pipe).post(
+            "/api/ask", json={"sessionId": "s1", "question": "hi"}
+        )
         assert resp.status_code == 200
         body = resp.json()
         assert body["success"] is True
@@ -45,7 +47,9 @@ class TestEnvelope:
 
     def test_session_id_and_question_forwarded_to_pipeline(self):
         pipe = FakePipe()
-        _client(pipe).post("/api/ask", json={"sessionId": "s9", "question": "上个月营收"})
+        _client(pipe).post(
+            "/api/ask", json={"sessionId": "s9", "question": "上个月营收"}
+        )
         assert pipe.calls == [("s9", "上个月营收")]
 
     def test_pipeline_exception_maps_to_error_envelope(self):
