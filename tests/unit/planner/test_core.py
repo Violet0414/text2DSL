@@ -243,3 +243,15 @@ def test_plan_result_is_frozen_dataclass():
     except Exception:  # noqa: BLE001 — frozen dataclass 赋值抛 FrozenInstanceError
         return
     raise AssertionError("PlanResult 应为 frozen dataclass")
+
+
+def test_plan_result_exposes_time_slot():
+    fake = FakeLlmClient([_query_payload(slot="last_month")])
+    result = plan("上个月营收", llm=fake)
+    assert result.time_slot == "last_month"
+
+
+def test_plan_result_time_slot_none_for_non_query():
+    fake = FakeLlmClient([{"behavior": "chitchat", "reply": "ok"}])
+    result = plan("你好", llm=fake)
+    assert result.time_slot is None

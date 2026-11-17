@@ -287,3 +287,55 @@ class TestFilteredDimNormalization:
         assert resp.type == "answer"
         assert resp.cube_query.get("dimensions") in (None, [])
         assert resp.cube_query["filters"][0]["value"] == "华东"
+
+
+class TestInFilterKeepsDim:
+    def test_in_multi_value_filter_keeps_groupby_dim(self):
+        # Q36:region in [华东,华北] 是多行对比,分组维度必须保留
+        from chatbi.executor import ExecutionResult as ER
+
+        rows = [{"region": "华东", "sales_amount": 100}]
+        pipe, _store, _mining, _executor = _pipeline(
+            [
+                {
+                    "behavior": "query",
+                    "cube_query": {
+                        "cube": "sales",
+                        "measures": ["sales_amount"],
+                        "dimensions": ["region"],
+                        "filters": [
+                            {"dimension": "region", "operator": "in", "value": ["华东", "华北"]}
+                        ],
+                    },
+                }
+            ],
+            exec_result=ER(
+                is_ok=True, columns=("region", "sales_amount"), rows=tuple(rows), row_count=1
+            ),
+        )
+        resp = pipe.ask("s1", "华东和华北的营收对比")
+        assert resp.type == "answer"
+        assert resp.cube_query["dimensions"] == ["region"]
+
+
+class TestBareMetricTimeGuard:
+    def test_bare_metric_word_without_overview_suffix_forces_time_clarify(self):
+        # FR-B3 兜底:裸指标词(退款率)漂移为 all_time 时,服务层强制澄清时间
+        pipe, _store, _mining, _executor = _pipeline(
+            [_query_out(slot="all_time")]
+        )
+        resp = pipe.ask("s1", "退款率")
+        assert resp.type == "clarification"
+        assert resp.clarify_step == "time"
+
+    def test_overview_suffix_bare_metric_stays_query(self):
+        # 总览泛问句(情况/怎么样/多少)保留 query 行为
+        pipe, _store, _mining, _executor = _pipeline([_query_out(slot="all_time")])
+        resp = pipe.ask("s1", "营收情况")
+        assert resp.type == "answer"
+
+    def test_inherited_time_bare_followup_not_clarified(self):
+        # 多轮继承:上一轮有时间,本轮裸追问(如"改成看订单量")不得误澄清
+        pipe, _store, _mining, _executor = _pipeline([_query_out()])
+        resp = pipe.ask("s1", "订单量")  # 无会话历史、无泛问后缀 → 澄清
+        assert resp.type == "clarification"
