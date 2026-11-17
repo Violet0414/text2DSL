@@ -22,7 +22,7 @@ export async function ask(
   question: string,
 ): Promise<{ payload: ChatPayload; traceId: string }> {
   const body = await chatbiClient.post<Envelope<{ type: string }>>(
-    '/api/ask',
+    '/ask',
     { question, sessionId },
   );
   const data = unwrapEnvelope(body);
@@ -37,7 +37,7 @@ export async function listSessions(): Promise<{
 }> {
   const body = await chatbiClient.get<
     Envelope<{ sessions: SessionSummary[] }>
-  >('/api/sessions');
+  >('/sessions');
   return unwrapEnvelope(body);
 }
 
@@ -46,6 +46,6 @@ export async function sessionHistory(
 ): Promise<{ messages: HistoryMessage[]; sessionId: string }> {
   const body = await chatbiClient.get<
     Envelope<{ messages: HistoryMessage[]; sessionId: string }>
-  >(`/api/sessions/${encodeURIComponent(sessionId)}/history`);
+  >(`/sessions/${encodeURIComponent(sessionId)}/history`);
   return unwrapEnvelope(body);
 }

@@ -36,6 +36,10 @@ overrides:
   pinia: 'catalog:'
   prosemirror-view: ^1.42.6
   vue: 'catalog:'
+  # 钉死单一 rolldown 版本,防止 pnpm 按 peer 上下文拆出两份 vue-router
+  # (双实例导致 useRouter() inject key 不匹配,登录后 BasicLayout 白屏)
+  rolldown: 1.2.19
+  vue-router: 5.2.0
 
 catalog:
   '@ast-grep/napi': ^0.51.0

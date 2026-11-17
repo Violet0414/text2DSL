@@ -121,3 +121,12 @@ CHATBI_WREN_BIN=$PWD/poc/.venv/bin/wren poc/.venv/bin/python -m uvicorn chatbi.a
   `{code,data,errorMessage}`,两套格式是显式边界,勿混用。
 - `.env.development` 已设 `VITE_NITRO_MOCK=false`(真实后端);
   生产 apiURL 为同源 `/api`。
+- **vue-router 双实例白屏(已修,勿回退)**:登录后 BasicLayout 白屏报
+  `Cannot read properties of undefined (reading 'beforeEach')`,根因是
+  pnpm 按 rolldown peer 上下文拆出两份 vue-router(注入 Symbol key 不匹配,
+  布局侧 useRouter() 恒 undefined)。已用 `web/pnpm-workspace.yaml`
+  overrides 钉死 `rolldown: 1.2.19` + `vue-router: 5.2.0` 根治。
+  判别方法:`ls web/apps/web-antd/dist/js | grep -c useApi` 应为 1;
+  `readlink web/apps/web-antd/node_modules/vue-router` 与
+  `web/packages/effects/layouts/node_modules/vue-router` 必须同源。
+  .pnpm 下同名多目录可能是历史残留,以 `pnpm why <pkg>` 为准。

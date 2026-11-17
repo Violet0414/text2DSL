@@ -65,13 +65,13 @@ export function useChat() {
     loading.value = true;
     try {
       const { payload, traceId } = await ask(sessionId.value, question);
-      replaceMessage(pending.id, { ...pending, payload, traceId });
+      replaceMessage(pending.id, { ...pending, pending: false, payload, traceId });
     } catch (error) {
       const text =
         error instanceof ChatbiApiError
           ? `[${error.code}] ${error.message}${error.traceId ? ` (traceId: ${error.traceId})` : ''}`
           : `网络或服务异常: ${String(error)}`;
-      replaceMessage(pending.id, { ...pending, error: text });
+      replaceMessage(pending.id, { ...pending, pending: false, error: text });
     } finally {
       loading.value = false;
     }
