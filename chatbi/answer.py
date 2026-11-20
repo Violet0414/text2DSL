@@ -9,7 +9,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class AnswerCard:
-    """query 成功的答案卡:数据 + 角色 + 指标元数据(五要素)。"""
+    """query 成功的答案卡:数据 + 角色 + 指标元数据(五要素)+ 图表推荐。"""
 
     type: str = "answer"
     rows: tuple[dict[str, Any], ...] = ()
@@ -17,6 +17,19 @@ class AnswerCard:
     roles: dict[str, str] = field(default_factory=dict)
     metric: dict[str, Any] = field(default_factory=dict)
     cube_query: dict[str, Any] | None = None
+    chart_options: tuple[dict[str, str], ...] = ()
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class ReportPayload:
+    """报表载荷(chart_select 轮):与工作流 report_json 结构对齐。"""
+
+    type: str = "report"
+    question: str = ""
+    summary: str = ""
+    chart: dict[str, Any] = field(default_factory=dict)
+    insight: dict[str, Any] = field(default_factory=dict)
     message: str = ""
 
 

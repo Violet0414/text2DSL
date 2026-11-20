@@ -49,6 +49,32 @@ class TestSessionRepositories:
         assert len(repo.load("s9").history) == 5
 
 
+class TestMessageRepositoryDelete:
+    """消息与会话状态删除:delete 后列表/历史/残留状态均消失。"""
+
+    def test_sqlite_message_delete_returns_count(self, tmp_path):
+        from chatbi.store.sqlite import SqliteMessageRepository
+
+        repo = SqliteMessageRepository(tmp_path / "m.db")
+        repo.append(session_id="a", role="user", payload={"text": "q"})
+        repo.append(session_id="a", role="assistant", payload={"type": "answer"})
+        repo.append(session_id="b", role="user", payload={"text": "其他会话"})
+        deleted = repo.delete("a")
+        assert deleted == 2
+        assert repo.history("a") == []
+        assert repo.delete("a") == 0  # 幂等:再删返回 0
+        assert [s.session_id for s in repo.list_sessions()] == ["b"]
+
+    def test_sqlite_session_delete_clears_pending_state(self, tmp_path):
+        repo = SqliteSessionRepository(tmp_path / "s.db")
+        repo.save(_session("s1", state="CLARIFYING"))
+        assert repo.load("s1").state == "CLARIFYING"
+        repo.delete("s1")
+        fresh = repo.load("s1")
+        assert fresh.state == "IDLE"
+        assert fresh.pending_clarification is None
+
+
 class TestMiningRepositories:
     def test_memory_candidate_roundtrip(self):
         repo = InMemoryMiningRepository()

@@ -18,6 +18,9 @@ class InMemorySessionRepository:
     def save(self, session: ChatSession) -> None:
         self._sessions[session.session_id] = session
 
+    def delete(self, session_id: str) -> None:
+        self._sessions.pop(session_id, None)
+
 
 def _ensure_identity(candidate: MiningCandidate) -> MiningCandidate:
     """候选缺 id/时间戳/规范化时补齐(落库纪律:id 必有)。"""

@@ -52,12 +52,20 @@ class SqliteSessionRepository:
             history=tuple(data.get("history") or ()),
             pending_plan=data.get("pending_plan"),
             pending_clarification=data.get("pending_clarification"),
+            last_answer=data.get("last_answer"),
         )
 
     def save(self, session: ChatSession) -> None:
         self._conn.execute(
             "INSERT OR REPLACE INTO sessions (session_id, data) VALUES (?, ?)",
             (session.session_id, json.dumps(asdict(session), ensure_ascii=False)),
+        )
+        self._conn.commit()
+
+    def delete(self, session_id: str) -> None:
+        """清除会话外置状态(pending 澄清/历史摘要),删除后 load 返回全新会话。"""
+        self._conn.execute(
+            "DELETE FROM sessions WHERE session_id = ?", (session_id,)
         )
         self._conn.commit()
 
@@ -134,6 +142,14 @@ class SqliteMessageRepository:
             )
             for r in rows
         ]
+
+    def delete(self, session_id: str) -> int:
+        """物理删除一个会话的全部消息,返回删除条数(幂等:不存在返回 0)。"""
+        cur = self._conn.execute(
+            "DELETE FROM chat_messages WHERE session_id = ?", (session_id,)
+        )
+        self._conn.commit()
+        return int(cur.rowcount)
 
     def list_sessions(self) -> list[SessionSummary]:
         rows = self._conn.execute(

@@ -31,6 +31,7 @@ from chatbi.pipeline import ChatPipeline
 from chatbi.planner.core import MDL_PATH
 from chatbi.planner.schema import load_mdl
 from chatbi.security import assert_no_db_credentials
+from chatbi.session import SessionRepository
 from chatbi.store.memory import InMemoryMiningRepository
 from chatbi.store.sqlite import SqliteMessageRepository, SqliteSessionRepository
 
@@ -64,17 +65,25 @@ def create_app(
     pipeline: ChatPipeline | None = None,
     message_store: MessageRepository | None = None,
     tokens: TokenStore | None = None,
+    session_store: SessionRepository | None = None,
 ) -> FastAPI:
-    """构建 FastAPI 应用;pipeline/message_store/tokens 可注入(测试)。缺省延迟装配。"""
+    """构建 FastAPI 应用;pipeline/message_store/tokens/session_store 可注入(测试)。缺省延迟装配。"""
     app = FastAPI(title="ChatBI API", version="0.1.0")
     state: dict[str, Any] = {"pipeline": pipeline}
     messages = message_store if message_store is not None else None
+    sessions = session_store if session_store is not None else None
     token_store = tokens if tokens is not None else TokenStore()
 
     def _pipe() -> ChatPipeline:
         if state["pipeline"] is None:
             state["pipeline"] = build_default_pipeline()
         return state["pipeline"]
+
+    def _sessions() -> SessionRepository:
+        nonlocal sessions
+        if sessions is None:
+            sessions = SqliteSessionRepository(Path("chatbi_sessions.db"))
+        return sessions
 
     def _messages() -> MessageRepository:
         nonlocal messages
@@ -165,6 +174,9 @@ def create_app(
                 "meta": _meta(),
             }
         except Exception as exc:  # noqa: BLE001 — 信封兜底:任何异常不裸奔
+            logger.exception(
+                "问数处理异常 sessionId=%s traceId=%s", req.sessionId, trace_id
+            )
             return {
                 "success": False,
                 "data": None,
@@ -239,6 +251,44 @@ def create_app(
                         for m in msgs
                     ],
                 },
+                "error": None,
+                "meta": _meta(),
+            }
+        except Exception as exc:  # noqa: BLE001 — 信封兜底
+            return {
+                "success": False,
+                "data": None,
+                "error": {"code": type(exc).__name__, "message": str(exc)[:500]},
+                "meta": _meta(),
+            }
+
+    @app.delete("/api/sessions/{session_id}")
+    def delete_session(session_id: str, request: Request):
+        _guard(request)
+        started = time.monotonic()
+        trace_id = uuid.uuid4().hex
+
+        def _meta() -> dict[str, Any]:
+            return {
+                "traceId": trace_id,
+                "latencyMs": int((time.monotonic() - started) * 1000),
+            }
+
+        try:
+            # 先清会话残留状态(不可见且可重试);消息删除是权威步骤,放最后:
+            # 若状态清理失败,重试仍可得;若消息删除失败,残留状态已被清,无副作用
+            _sessions().delete(session_id)
+            deleted = _messages().delete(session_id)
+            if deleted == 0:
+                return {
+                    "success": False,
+                    "data": None,
+                    "error": {"code": "NOT_FOUND", "message": f"会话 {session_id} 不存在"},
+                    "meta": _meta(),
+                }
+            return {
+                "success": True,
+                "data": {"sessionId": session_id, "deletedMessages": deleted},
                 "error": None,
                 "meta": _meta(),
             }

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from typing import Any, ClassVar
 
 from wren_core import cube_query_to_sql
 
@@ -17,13 +18,22 @@ from chatbi.answer import (
     ErrorPayload,
     MissPayload,
     ReplyPayload,
+    ReportPayload,
     build_metric_metadata,
+)
+from chatbi.charting import (
+    CHART_LABELS,
+    CHART_TYPES,
+    build_chart_option,
+    recommend_charts,
 )
 from chatbi.clarify import render_clarification
 from chatbi.executor import WrenCliExecutor
 from chatbi.gate import GovernanceGate
+from chatbi.insight import InsightResult, build_insight
 from chatbi.mining import MiningRepository, new_candidate
-from chatbi.planner.core import MDL_PATH, PlanResult, plan
+from chatbi.planner.core import MDL_PATH, PlanResult, get_default_llm_client, plan
+from chatbi.planner.llm import LlmConfigError
 from chatbi.planner.schema import cube_members, load_mdl
 from chatbi.session import ChatSession, SessionRepository
 from chatbi.time_rules import TODAY
@@ -73,11 +83,14 @@ class ChatPipeline:
         self._mdl_json = json.dumps(mdl, ensure_ascii=False)
 
     def ask(self, session_id: str, question: str):
-        """处理一轮提问,返回应答载荷(AnswerCard/Clarification/Miss/Reply/Error)。"""
+        """处理一轮提问,返回应答载荷(AnswerCard/Clarification/Miss/Reply/Error/Report)。"""
         session = self._sessions.load(session_id)
         if question.strip() in RESET_PHRASES:
             self._sessions.save(ChatSession(session_id=session_id))
             return ReplyPayload(text="已清空上下文,请重新提问")
+        chart_selection = self._parse_chart_select(question)
+        if chart_selection:
+            return self._handle_chart_select(session, chart_selection)
         if session.pending_clarification:
             return self._handle_clarify_answer(session, question)
         return self._plan_and_answer(session, question)
@@ -188,14 +201,24 @@ class ChatPipeline:
                 state="ANSWERING",
                 pending_plan=None,
                 pending_clarification=None,
+                last_answer={
+                    "question": question,
+                    "rows": [dict(row) for row in exec_result.rows],
+                    "columns": list(exec_result.columns),
+                },
             ).append_history(question, history_turn)
         )
+        chart_options = recommend_charts(question, exec_result.rows, exec_result.columns)
         return AnswerCard(
             rows=exec_result.rows,
             columns=exec_result.columns,
             roles=exec_result.roles,
             metric=meta,
             cube_query=wren_cq,
+            chart_options=tuple(
+                {"type": o.type, "label": o.label, "purpose": o.purpose}
+                for o in chart_options
+            ),
             message=message,
         )
 
@@ -291,6 +314,79 @@ class ChatPipeline:
             template_id=clarified.template_id,
             question_text=clarified.question_text,
         )
+
+    # --- 图表选择轮(镜像工作流意图路由 code_router + result_cache 语义) ---
+
+    _CHART_SELECT_ALIASES: ClassVar[dict[str, str]] = {
+        "饼图": "pie",
+        "柱状图": "bar",
+        "柱图": "bar",
+        "条形图": "bar",
+        "折线图": "line",
+        "线图": "line",
+    }
+
+    @classmethod
+    def _parse_chart_select(cls, question: str) -> str | None:
+        """识别图表选择消息:前端按钮 JSON 约定优先,纯文本图表名兜底(镜像 code_router)。"""
+        text = (question or "").strip()
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            payload = None
+        if isinstance(payload, dict) and payload.get("action") == "chart_select":
+            chart_type = str(payload.get("chart_type") or "").strip().lower()
+            return chart_type if chart_type in CHART_TYPES else "bar"
+        return cls._CHART_SELECT_ALIASES.get(text.lower())
+
+    def _handle_chart_select(
+        self, session: ChatSession, chart_type: str
+    ) -> AnswerCard | ReplyPayload | ReportPayload:
+        last = session.last_answer or {}
+        rows = last.get("rows") or []
+        if not rows:
+            return ReplyPayload(
+                text="当前会话没有可用的查询结果。请先输入一个数据问题"
+                "(如:上个月各渠道营收),查询成功后再选择图表。"
+            )
+        question = str(last.get("question") or "")
+        columns = tuple(last.get("columns") or ())
+        row_dicts = tuple(dict(row) for row in rows)
+        option = build_chart_option(row_dicts, columns, chart_type, question)
+        if option is None:
+            return ReplyPayload(text="当前查询结果没有可绘图的数值列,无法生成图表。")
+        insight = self._build_insight_safe(question, row_dicts, columns)
+        return ReportPayload(
+            question=question,
+            summary=insight.summary,
+            chart={
+                "type": chart_type,
+                "label": CHART_LABELS[chart_type],
+                "echarts_option": option,
+            },
+            insight=(
+                {}
+                if not insight.ok
+                else {
+                    "core_data": insight.core_data,
+                    "trend_analysis": insight.trend_analysis,
+                }
+            ),
+            message="" if insight.ok else "AI 解读生成失败,请稍后重试",
+        )
+
+    def _build_insight_safe(
+        self,
+        question: str,
+        rows: tuple[dict[str, Any], ...],
+        columns: tuple[str, ...],
+    ) -> InsightResult:
+        """解读失败(含 LLM 未配置)不阻断图表返回,降级为空解读。"""
+        try:
+            llm = self._llm or get_default_llm_client()
+        except LlmConfigError:
+            return InsightResult(ok=False, error="llm not configured")
+        return build_insight(question, rows, columns, llm)
 
     # --- 工具函数 ---
 

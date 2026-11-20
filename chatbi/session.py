@@ -27,6 +27,7 @@ class ChatSession:
     history: tuple[dict[str, Any], ...] = ()
     pending_plan: dict[str, Any] | None = None
     pending_clarification: dict[str, Any] | None = None
+    last_answer: dict[str, Any] | None = None  # 最近一次查询缓存(rows/columns/question),供图表轮复用
 
     def with_history(self, turns) -> ChatSession:
         """返回截断至最近 MAX_HISTORY_TURNS 轮的新会话(FR-C3 上下文窗口)。"""
@@ -42,3 +43,5 @@ class SessionRepository(Protocol):
     def load(self, session_id: str) -> ChatSession: ...
 
     def save(self, session: ChatSession) -> None: ...
+
+    def delete(self, session_id: str) -> None: ...

@@ -112,6 +112,80 @@ def _query_out(measures=None, slot=None, dimensions=None):
     return {"behavior": "query", "cube_query": cq}
 
 
+class TestChartSelect:
+    """chart_select 轮:图表推荐落卡 + last_answer 缓存 + 两轮交互产出报表载荷。"""
+
+    _INSIGHT = {
+        "summary": "根据sales_amount统计,共4项,最大项为app",
+        "core_data": "合计 3017.9;最大项 app 1035.7",
+        "trend_analysis": "各渠道量级差异明显,小程序约为电商的1.9倍",
+    }
+
+    def _ask_then_select(self, chart_type):
+        pipe, store, _mining, _exec = _pipeline(
+            [
+                _query_out(slot="last_month", dimensions=["channel"]),
+                self._INSIGHT,
+            ]
+        )
+        first = pipe.ask("s1", "上个月各渠道营收")
+        assert first.type == "answer"
+        assert first.chart_options, "AnswerCard 应携带图表推荐"
+        labels = {o["type"] for o in first.chart_options}
+        assert labels == {"bar", "line", "pie"}
+        second = pipe.ask(
+            "s1", json.dumps({"action": "chart_select", "chart_type": chart_type})
+        )
+        return pipe, store, first, second
+
+    def test_chart_select_returns_report_payload(self):
+        _pipe, _store, _first, second = self._ask_then_select("pie")
+        assert second.type == "report"
+        assert second.chart["type"] == "pie"
+        assert second.chart["label"] == "饼图"
+        assert second.chart["echarts_option"]["series"][0]["type"] == "pie"
+        assert second.insight["core_data"] == "合计 3017.9;最大项 app 1035.7"
+        assert second.summary
+
+    def test_invalid_chart_type_falls_back_to_bar(self):
+        _pipe, _store, _first, second = self._ask_then_select("radar")
+        assert second.chart["type"] == "bar"
+
+    def test_chart_select_without_cache_degrades_to_hint(self):
+        pipe, _store, _first, _second = _pipeline([])
+        resp = pipe.ask(
+            "s2", json.dumps({"action": "chart_select", "chart_type": "bar"})
+        )
+        assert resp.type == "reply"
+        assert "先输入一个数据问题" in resp.text
+
+    def test_insight_failure_still_returns_chart(self):
+        pipe, _store, _first, second = _pipeline(
+            [
+                _query_out(slot="last_month", dimensions=["channel"]),
+                "垃圾输出1",
+                "垃圾输出2",
+            ]
+        )
+        first = pipe.ask("s1", "上个月各渠道营收")
+        assert first.type == "answer"
+        second = pipe.ask(
+            "s1", json.dumps({"action": "chart_select", "chart_type": "bar"})
+        )
+        assert second.type == "report"
+        assert second.chart["echarts_option"]
+        assert second.insight == {}
+        assert second.message
+
+    def test_last_answer_persisted_in_session(self):
+        pipe, store, _first, _second = self._ask_then_select("pie")
+        last = store.load("s1").last_answer
+        assert last is not None
+        assert last["question"] == "上个月各渠道营收"
+        assert last["rows"]
+        assert last["columns"]
+
+
 class TestChitchatAndMiss:
     def test_chitchat_bypasses_to_plain_reply(self):
         pipe, _store, mining, _ = _pipeline(

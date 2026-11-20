@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from fastapi.testclient import TestClient
 
 from chatbi.api import create_app
+from chatbi.store.memory import InMemorySessionRepository
 from chatbi.store.sqlite import SqliteMessageRepository
 
 
@@ -34,7 +35,11 @@ class FakePipe:
 
 def _client(tmp_path, pipe=None) -> TestClient:
     store = SqliteMessageRepository(tmp_path / "msg.db")
-    app = create_app(pipeline=pipe or FakePipe(), message_store=store)
+    app = create_app(
+        pipeline=pipe or FakePipe(),
+        message_store=store,
+        session_store=InMemorySessionRepository(),
+    )
     return TestClient(app)
 
 
@@ -188,6 +193,37 @@ class TestSessionHistory:
     def test_history_requires_auth(self, tmp_path):
         client = _client(tmp_path)
         assert client.get("/api/sessions/s1/history").status_code == 401
+
+
+class TestSessionDelete:
+    """DELETE /api/sessions/{id}:物理删除消息,残留会话状态同步清除。"""
+
+    def test_delete_removes_messages_and_session_summary(self, tmp_path):
+        client = _client(tmp_path, pipe=FakePipe())
+        client.post("/api/ask", json={"sessionId": "s1", "question": "本月销售额"})
+        token = _login(client)
+        resp = client.delete("/api/sessions/s1", headers=_auth_header(token))
+        body = resp.json()
+        assert body["success"] is True
+        assert body["data"]["sessionId"] == "s1"
+        assert body["data"]["deletedMessages"] == 2  # user + assistant
+        listing = client.get("/api/sessions", headers=_auth_header(token))
+        assert listing.json()["data"]["sessions"] == []
+        history = client.get("/api/sessions/s1/history", headers=_auth_header(token))
+        assert history.json()["success"] is False
+
+    def test_delete_unknown_session_is_not_found(self, tmp_path):
+        client = _client(tmp_path)
+        resp = client.delete(
+            "/api/sessions/ghost", headers=_auth_header(_login(client))
+        )
+        body = resp.json()
+        assert body["success"] is False
+        assert body["error"]["code"] == "NOT_FOUND"
+
+    def test_delete_requires_auth(self, tmp_path):
+        client = _client(tmp_path)
+        assert client.delete("/api/sessions/s1").status_code == 401
 
 
 class TestMessageStore:
