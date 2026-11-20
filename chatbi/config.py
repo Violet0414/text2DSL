@@ -19,7 +19,7 @@ DEFAULT_WREN_PROJECT_DIR = REPO_ROOT / "poc" / "wren_poc"
 class LlmConfig:
     """规划器 LLM 配置(Q1 定案前用占位模型,appkey 经环境变量填入)。"""
 
-    model: str = "claude-sonnet-5-5"
+    model: str = "deepseek-v4.1-flash"
     max_tokens: int = 2048
     temperature: float = 0.0
     api_key: str | None = None
@@ -29,7 +29,7 @@ class LlmConfig:
     @classmethod
     def from_env(cls) -> LlmConfig:
         return cls(
-            model=os.environ.get("CHATBI_LLM_MODEL", "claude-sonnet-5-5"),
+            model=os.environ.get("CHATBI_LLM_MODEL", "deepseek-v4.1-flash"),
             max_tokens=int(os.environ.get("CHATBI_LLM_MAX_TOKENS", "2048")),
             temperature=float(os.environ.get("CHATBI_LLM_TEMPERATURE", "0")),
             api_key=os.environ.get("ANTHROPIC_API_KEY"),

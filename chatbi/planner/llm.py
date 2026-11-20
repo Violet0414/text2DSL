@@ -1,7 +1,9 @@
 """Anthropic 兼容 API 封装:工具强制结构化输出,解析失败时 JSON 修复回退。
 
-注意:ANTHROPIC_BASE_URL 代理后端实测为 doubao-seed-2-1-turbo;
-模型名经代理映射,规划器 LLM 可替换,PoC 报告须如实记录实测模型。
+注意:ANTHROPIC_BASE_URL 指向火山 codingPlan 网关,按请求模型名映射后端;
+PoC 期间实测映射为 doubao-seed-2-1-turbo;2026-11-18 经用户指示切换为
+deepseek-v4.1-flash(探针验证 tool_use 路径可用)。换模型零代码改动,
+报告须如实记录实测模型。
 """
 
 from __future__ import annotations
@@ -16,7 +18,7 @@ from anthropic import Anthropic
 
 from chatbi.config import LlmConfig
 
-MODEL = "claude-sonnet-5-5"
+MODEL = "deepseek-v4.1-flash"
 MAX_TOKENS = 2048
 
 
