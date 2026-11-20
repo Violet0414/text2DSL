@@ -25,7 +25,15 @@ export interface MetricMeta {
   [key: string]: unknown;
 }
 
+/** 图表推荐条目(AnswerCard 附带,前端选择按钮数据源) */
+export interface ChartOptionInfo {
+  label: string;
+  purpose: string;
+  type: string;
+}
+
 export interface AnswerCardData {
+  chart_options?: ChartOptionInfo[];
   columns: string[];
   cube_query: null | Record<string, unknown>;
   message: string;
@@ -61,12 +69,27 @@ export interface ErrorData {
   type: 'error';
 }
 
+/** 报表载荷(chart_select 轮):与工作流 report_json 结构对齐 */
+export interface ReportData {
+  chart: {
+    echarts_option: null | Record<string, unknown>;
+    label: string;
+    type: string;
+  };
+  insight: { core_data?: string; trend_analysis?: string };
+  message: string;
+  question: string;
+  summary: string;
+  type: 'report';
+}
+
 export type ChatPayload =
   | AnswerCardData
   | ClarifyData
   | MissData
   | ReplyData
-  | ErrorData;
+  | ErrorData
+  | ReportData;
 
 /** 会话列表条目(GET /api/sessions,camelCase 信封) */
 export interface SessionSummary {
@@ -91,6 +114,7 @@ const PAYLOAD_TYPES: readonly string[] = [
   'error',
   'miss',
   'reply',
+  'report',
 ];
 
 export function isPayloadType(value: unknown): value is ChatPayload['type'] {

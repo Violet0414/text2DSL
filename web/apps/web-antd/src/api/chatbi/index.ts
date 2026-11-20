@@ -49,3 +49,12 @@ export async function sessionHistory(
   >(`/sessions/${encodeURIComponent(sessionId)}/history`);
   return unwrapEnvelope(body);
 }
+
+export async function deleteSession(
+  sessionId: string,
+): Promise<{ deletedMessages: number; sessionId: string }> {
+  const body = await chatbiClient.delete<
+    Envelope<{ deletedMessages: number; sessionId: string }>
+  >(`/sessions/${encodeURIComponent(sessionId)}`);
+  return unwrapEnvelope(body);
+}

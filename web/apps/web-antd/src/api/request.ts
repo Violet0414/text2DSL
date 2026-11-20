@@ -119,4 +119,7 @@ export const baseRequestClient = new RequestClient({ baseURL: apiURL });
  */
 export const chatbiClient = createRequestClient(apiURL, {
   responseReturn: 'body',
+  // ChatBI 问数链路含真实 LLM 规划 + wren 执行,常超 10s 默认值;
+  // 超时会抛非 ChatbiApiError,UI 层只能显示"网络或服务异常"
+  timeout: 120_000,
 });
